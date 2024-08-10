@@ -1,0 +1,48 @@
+{
+  "name": "topazio-shop-backend-aws",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js",
+    "server-prod": "node server.js",
+    "server-dev": "nodemon server.js",
+    "client": "npm run dev --prefix ../frontend",
+    "dev": "concurrently \"npm run server-dev\" \"npm run client\"",
+    "seed:data": "node seeder/seeder",
+    "seed:data-d": "node seeder/seeder -d"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wichapons/topazio-shop-backend-aws.git"
+  },
+  "keywords": [
+    "e-commerce",
+    "website"
+  ],
+  "author": "Wichapon V",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wichapons/topazio-shop-backend-aws/issues"
+  },
+  "homepage": "https://github.com/wichapons/topazio-shop-backend-aws#readme",
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.4.0",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^7.2.1",
+    "socket.io": "^4.7.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "nodemon": "^2.0.22"
+  },
+  "engines": {
+    "node": "18.15.0"
+  }
+}
