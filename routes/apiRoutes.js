@@ -18,5 +18,9 @@ app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/users", userRoutes);
 app.use("/orders", orderRoutes);
+app.get("/health", (req, res) => {
+  res.status(200).json({ message: "API is working" });
+});
+
 
 module.exports = app;
