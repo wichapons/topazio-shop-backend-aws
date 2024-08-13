@@ -20,7 +20,7 @@ jobs:
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          cd /path/to/backend
+          cd /home/ubuntu/topazio-shop-backend-aws
           git pull origin main
           npm install
           pm2 restart all  # or any other command to restart your backend
