@@ -6,15 +6,8 @@ on:
       - main
 
 jobs:
-  checkout:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
   test-ssm-connectivity:
     runs-on: ubuntu-latest
-    needs: checkout
     steps:
     - name: Test SSM Connectivity
       id: test-ssm-connectivity
