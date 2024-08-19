@@ -9,6 +9,8 @@ if (!sdkKey) {
 }
 
 const ldClient = LaunchDarkly.init(sdkKey);
+ldClient.setMaxListeners(20);  // Increase the max listeners limit to 20
+
 const context = {
   kind: 'user',
   key: 'example-user-key',
@@ -19,7 +21,7 @@ let currentFlagStatus;
 
 const initializeLaunchDarkly = async (req, res, next) => {
   try {
-    await ldClient.waitForInitialization();
+    await ldClient.waitForInitialization({ timeout: 20 });  // Set a timeout to avoid warnings
     console.log('*** SDK successfully initialized!');
 
     const updateFlagStatus = async () => {
@@ -31,7 +33,7 @@ const initializeLaunchDarkly = async (req, res, next) => {
       }
     };
 
-    ldClient.on(`update:${featureFlagKey}`, updateFlagStatus);
+    ldClient.once(`update:${featureFlagKey}`, updateFlagStatus);  
     await updateFlagStatus();
 
     if (process.env.CI) {
