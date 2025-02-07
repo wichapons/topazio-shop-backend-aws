@@ -6,54 +6,82 @@ on:
       - main
 
 jobs:
-  test-ssm-connectivity:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Test SSM Connectivity
-      id: test-ssm-connectivity
-      uses: nohmad/aws-ssm-send-command-action@v1.0
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-        document-name: AWS-RunShellScript
-        targets: '[{"Key":"InstanceIds","Values":["${{ secrets.EC2_INSTANCE_ID }}"]}]'
-        parameters: '{"commands":["echo Hello World"]}'
-        timeout: 30
+  # test-ssm-connectivity:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Test SSM Connectivity
+  #     id: test-ssm-connectivity
+  #     uses: nohmad/aws-ssm-send-command-action@v1.0
+  #     with:
+  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #       aws-region: ${{ secrets.AWS_REGION }}
+  #       document-name: AWS-RunShellScript
+  #       targets: '[{"Key":"InstanceIds","Values":["${{ secrets.EC2_INSTANCE_ID }}"]}]'
+  #       parameters: '{"commands":["echo Hello World"]}'
+  #       timeout: 30
 
   build-and-push:
     runs-on: ubuntu-latest
-    needs: test-ssm-connectivity
+    #needs: test-ssm-connectivity
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Log in to GitHub Container Registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Build and Push Docker Image to GHCR
-      id: build-and-push-docker-image
+    - name: Log in to Amazon ECR
+      id: login-ecr
       run: |
+        aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+        docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+    - name: Build, Tag, and Push Docker Image to ECR
+      id: build-and-push-ecr
+      run: |
+        # Variables
+        IMAGE_REPO_NAME=backend
+        RANDOM_TAG=prod-$(date +%Y%m%d%H%M%S)   # Generate unique tag using timestamp
+        ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
+        REGION=${{ secrets.AWS_REGION }}
+        ECR_REGISTRY=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+
+        echo "Generated Image Tag: ${RANDOM_TAG}"
+        echo "RANDOM_TAG=${RANDOM_TAG}" >> $GITHUB_ENV  # Export for the next job
+
+        # Check if Dockerfile exists
         if [ ! -f Dockerfile ]; then
           echo "Error: Dockerfile not found in the current directory"
           ls -la
           exit 1
         fi
-        docker build -t ghcr.io/${{ github.repository }}/backend:latest .
-        docker push ghcr.io/${{ github.repository }}/backend:latest
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-    - name: Deploy to EC2 via SSM
-      uses: nohmad/aws-ssm-send-command-action@v1.0
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-        document-name: AWS-RunShellScript
-        targets: '[{"Key":"InstanceIds","Values":["${{ secrets.EC2_INSTANCE_ID }}"]}]'
-        parameters: >
-          {"commands":["sudo su - ubuntu -c 'cd /home/ubuntu/topazio-shop-backend-aws && git pull origin main && npm install && pm2 restart all'"]}
-        timeout: 60
+        # Build Docker image
+        docker build -t ${IMAGE_REPO_NAME}:${RANDOM_TAG} .
+
+        # Tag the image for ECR
+        docker tag ${IMAGE_REPO_NAME}:${RANDOM_TAG} ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${RANDOM_TAG}
+
+        # Push the image to ECR
+        docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${RANDOM_TAG}
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-push
+  #   steps:
+  #   - name: Deploy to EC2 via SSM
+  #     uses: nohmad/aws-ssm-send-command-action@v1.0
+  #     with:
+  #       aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #       aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #       aws-region: ${{ secrets.AWS_REGION }}
+  #       document-name: AWS-RunShellScript
+  #       targets: '[{"Key":"InstanceIds","Values":["${{ secrets.EC2_INSTANCE_ID }}"]}]'
+  #       parameters: >
+  #         {"commands":["sudo docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:${{ env.RANDOM_TAG }} && sudo docker stop backend || true && sudo docker rm backend || true && sudo docker run -d --name backend -p 80:3000 ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:${{ env.RANDOM_TAG }}"]}
+  #       timeout: 60
