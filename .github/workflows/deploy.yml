@@ -46,7 +46,7 @@ jobs:
       run: |
         # Variables
         IMAGE_REPO_NAME=backend
-        RANDOM_TAG=prod-$(date +%Y%m%d%H%M%S)   # Generate unique tag using timestamp
+        RANDOM_TAG=${{ secrets.IMAGE_TAG_PREFIX }}-$(date +%Y%m%d%H%M%S)   # Generate unique tag using timestamp
         ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
         REGION=${{ secrets.AWS_REGION }}
         ECR_REGISTRY=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
