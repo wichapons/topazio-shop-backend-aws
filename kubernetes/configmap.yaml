@@ -1,0 +1,10 @@
+# For non-sensitive configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: topazio-backend-config
+  namespace: topazio-dev
+data:
+  NODE_ENV: "dev"
+  PORT: "5000"
+  ORIGIN_WHITELIST: "https://topazio.me,https://www.topazio.me"

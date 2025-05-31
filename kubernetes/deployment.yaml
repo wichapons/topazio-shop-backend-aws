@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topazio-backend
+  namespace: topazio-dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: topazio-backend
+  template:
+    metadata:
+      labels:
+        app: topazio-backend
+    spec:
+      containers:
+      - name: backend
+        image: ${IMAGE_URI}
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        env:
+        # Configuration from ConfigMap
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: topazio-backend-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: topazio-backend-config
+              key: PORT
+        - name: ORIGIN_WHITELIST
+          valueFrom:
+            configMapKeyRef:
+              name: topazio-backend-config
+              key: ORIGIN_WHITELIST
+        # Sensitive data from Secrets
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: topazio-backend-secrets
+              key: MONGO_URI
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: topazio-backend-secrets
+              key: JWT_SECRET_KEY
+        - name: stripeApiKey
+          valueFrom:
+            secretKeyRef:
+              name: topazio-backend-secrets
+              key: STRIPE_API_KEY
+        - name: LAUNCHDARKLY_SDK_KEY
+          valueFrom:
+            secretKeyRef:
+              name: topazio-backend-secrets
+              key: LAUNCHDARKLY_SDK_KEY
+        livenessProbe:          # Health check: restart if this fails
+          httpGet:
+            path: /api/health   # Endpoint to check (matches ingress configuration)
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:         # Traffic routing: only send traffic if this passes
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5

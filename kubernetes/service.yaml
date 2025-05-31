@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: topazio-backend-service
+  namespace: topazio-dev
+spec:
+  selector:
+    app: topazio-backend  ports:
+  - name: http          # Name the port for clarity
+    port: 80           # Service port
+    targetPort: 5000   # Your app's port
+    protocol: TCP
+  type: ClusterIP       # Internal service (works with ALB Ingress)

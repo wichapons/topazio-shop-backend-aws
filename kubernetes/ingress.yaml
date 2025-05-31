@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public-alb-ingress
+  namespace: topazio-dev
+  annotations:
+    # AWS Load Balancer Controller annotations
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    
+    # SSL/TLS Configuration
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:767828768839:certificate/09522a8d-018d-4de5-8890-ea7c0e2b705c
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    
+    # Load Balancer Configuration
+    alb.ingress.kubernetes.io/load-balancer-name: topazio-public-alb
+    alb.ingress.kubernetes.io/group.name: topazio-group
+    
+    # Health Check Configuration
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    
+    # Security Configuration
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    
+spec:
+  tls:
+  - hosts:
+    - topazio.me
+    - "*.topazio.me"
+  rules:
+  # API subdomain rule for your backend
+  - host: api.topazio.me
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: topazio-backend-service
+            port:
+              number: 80
