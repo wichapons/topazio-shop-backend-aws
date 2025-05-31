@@ -70,44 +70,66 @@ jobs:
       uses: actions/checkout@v3
       
     - name: Configure AWS credentials with OIDC
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        role-session-name: GitHub-Actions-EKS-Deploy
         aws-region: ${{ secrets.AWS_REGION }}
+        mask-aws-account-id: false
 
-    - name: Update kube config
+    - name: Verify AWS credentials
       run: |
-        aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+        echo "Verifying AWS credentials..."
+        aws sts get-caller-identity
+        aws eks describe-cluster --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} --query 'cluster.status'
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Update kube config and verify connection
+      run: |
+        echo "Updating kubeconfig..."
+        aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} --verbose
         
-        # Verify kubectl can connect to the cluster
+        echo "Verifying kubeconfig..."
+        kubectl config view --minify
+        
+        echo "Testing cluster connection..."
         kubectl cluster-info
         kubectl get nodes
 
     - name: Deploy to Kubernetes
+      env:
+        IMAGE_URI: ${{ needs.build-and-push.outputs.image-uri }}
       run: |
-        # Get the image URI from the previous job
-        IMAGE_URI="${{ needs.build-and-push.outputs.image-uri }}"
         echo "Deploying image: ${IMAGE_URI}"
         
         # Create namespace first
         kubectl apply -f kubernetes/namespace.yaml
         
-        # Create secrets directly from GitHub repository secrets
+        # Delete existing secret if it exists and create new one
+        kubectl delete secret topazio-backend-secrets -n topazio-dev --ignore-not-found=true
         kubectl create secret generic topazio-backend-secrets \
           --from-literal=MONGO_URI="${{ secrets.MONGO_URI }}" \
           --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
           --from-literal=STRIPE_API_KEY="${{ secrets.STRIPE_API_KEY }}" \
           --from-literal=LAUNCHDARKLY_SDK_KEY="${{ secrets.LAUNCHDARKLY_SDK_KEY }}" \
-          --namespace=topazio-dev \
-          --dry-run=client -o yaml | kubectl apply -f -
+          --namespace=topazio-dev
           
         # Apply ConfigMap for non-sensitive configuration
         kubectl apply -f kubernetes/configmap.yaml
         
-        # Deploy application manifests
+        # Deploy application manifests with environment substitution
+        export IMAGE_URI="${IMAGE_URI}"
         envsubst < kubernetes/deployment.yaml | kubectl apply -f -
         kubectl apply -f kubernetes/service.yaml
         kubectl apply -f kubernetes/ingress.yaml
         
+        # Check deployment status
+        kubectl get pods -n topazio-dev
+        kubectl get services -n topazio-dev
+        
         # Wait for deployment to complete
-        kubectl rollout status deployment/topazio-backend -n topazio-dev --timeout=180s
+        kubectl rollout status deployment/topazio-backend -n topazio-dev --timeout=300s
