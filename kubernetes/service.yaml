@@ -5,7 +5,8 @@ metadata:
   namespace: topazio-dev
 spec:
   selector:
-    app: topazio-backend  ports:
+    app: topazio-backend
+  ports:
   - name: http          # Name the port for clarity
     port: 80           # Service port
     targetPort: 5000   # Your app's port
