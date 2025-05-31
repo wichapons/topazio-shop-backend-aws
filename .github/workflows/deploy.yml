@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image-repo: ${{ steps.build-and-push-ecr.outputs.image-repo }}
-      image-tag: ${{ steps.build-and-push-ecr.outputs.image-tag }}
+      timestamp: ${{ steps.build-and-push-ecr.outputs.timestamp }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -34,10 +34,11 @@ jobs:
 
     - name: Build, Tag, and Push Docker Image to ECR
       id: build-and-push-ecr
-      run: |
-        # Variables
+      run: |        # Variables
         IMAGE_REPO_NAME=backend
-        RANDOM_TAG=${{ secrets.IMAGE_TAG_PREFIX }}-$(date +%Y%m%d%H%M%S)
+        TIMESTAMP=$(date +%Y%m%d%H%M%S)
+        TAG_PREFIX="${{ secrets.IMAGE_TAG_PREFIX }}"
+        RANDOM_TAG="${TAG_PREFIX}-${TIMESTAMP}"
         ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
         REGION=${{ secrets.AWS_REGION }}
         ECR_REGISTRY=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
@@ -63,9 +64,9 @@ jobs:
         echo "📤 Pushing image to ECR..."
         docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${RANDOM_TAG}
         
-        # Output the image components (safe from secret detection)
+        # Output only the components that won't trigger secret detection
         echo "image-repo=${IMAGE_REPO_NAME}" >> $GITHUB_OUTPUT
-        echo "image-tag=${RANDOM_TAG}" >> $GITHUB_OUTPUT
+        echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
         
         echo "✅ Image pushed successfully"
 
@@ -106,20 +107,22 @@ jobs:
     - name: Deploy to Kubernetes
       env:
         IMAGE_REPO: ${{ needs.build-and-push.outputs.image-repo }}
-        IMAGE_TAG: ${{ needs.build-and-push.outputs.image-tag }}
+        TIMESTAMP: ${{ needs.build-and-push.outputs.timestamp }}
         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
+        IMAGE_TAG_PREFIX: ${{ secrets.IMAGE_TAG_PREFIX }}
       run: |
-        # Construct image URI from components
+        # Construct image tag and URI from components
+        IMAGE_TAG="${IMAGE_TAG_PREFIX}-${TIMESTAMP}"
         IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_REPO}:${IMAGE_TAG}"
         
         # Validate required components
-        if [ -z "${IMAGE_REPO}" ] || [ -z "${IMAGE_TAG}" ]; then
+        if [ -z "${IMAGE_REPO}" ] || [ -z "${TIMESTAMP}" ]; then
           echo "❌ Error: Missing image components from build job"
           exit 1
         fi
         
-        echo "🚀 Deploying application..."
+        echo "🚀 Deploying application with image: ${IMAGE_REPO}:${IMAGE_TAG}"
         
         # Create namespace first
         kubectl apply -f kubernetes/namespace.yaml
