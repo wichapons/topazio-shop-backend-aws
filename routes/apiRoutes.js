@@ -5,10 +5,10 @@ const categoryRoutes = require("./categoryRoutes");
 const userRoutes = require("./userRoutes");
 const orderRoutes = require("./orderRoutes");
 const verifyAccessToken = require("../utils/verifyAccessToken");
-const { initializeLaunchDarkly, getCurrentFlagStatus } = require("../middlewares/launchDarklyMiddleware");
+//const { initializeLaunchDarkly, getCurrentFlagStatus } = require("../middlewares/launchDarklyMiddleware");
 
 // Use LaunchDarkly initialization middleware
-app.use(initializeLaunchDarkly);
+//app.use(initializeLaunchDarkly);
 
 app.get("/get-token", (req, res) => {
   verifyAccessToken(req, res);
@@ -19,12 +19,13 @@ app.get("/logout", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  const currentFlagStatus = getCurrentFlagStatus();
-  if (currentFlagStatus) {
-    return res.status(503).json({ message: "API is disabled" });
-  } else {
-    return res.status(200).json({ message: "API is working" });
-  }
+   return res.status(200).json({ message: "API is working" });
+  // const currentFlagStatus = getCurrentFlagStatus();
+  // if (currentFlagStatus) {
+  //   return res.status(503).json({ message: "API is disabled" });
+  // } else {
+  //   return res.status(200).json({ message: "API is working" });
+  // }
 });
 
 app.use("/products", productRoutes);
