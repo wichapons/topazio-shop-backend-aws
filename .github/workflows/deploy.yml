@@ -55,12 +55,12 @@ jobs:
 
         # Tag the image for ECR
         docker tag ${IMAGE_REPO_NAME}:${RANDOM_TAG} ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${RANDOM_TAG}
-        
-        # Push the image to ECR
+          # Push the image to ECR
         docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${RANDOM_TAG}
         
         # Output the image URI for the next job
         echo "image-uri=${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${RANDOM_TAG}" >> $GITHUB_OUTPUT
+        echo "Debug: Set output image-uri=${ECR_REGISTRY}/${IMAGE_REPO_NAME}:${RANDOM_TAG}"
 
   deploy-to-eks:
     runs-on: ubuntu-latest
@@ -92,18 +92,23 @@ jobs:
       run: |
         echo "Updating kubeconfig..."
         aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} --verbose
-        
-        echo "Verifying kubeconfig..."
-        kubectl config view --minify
-        
+              
         echo "Testing cluster connection..."
         kubectl cluster-info
         kubectl get nodes
-
     - name: Deploy to Kubernetes
       env:
         IMAGE_URI: ${{ needs.build-and-push.outputs.image-uri }}
       run: |
+        echo "IMAGE_URI environment variable: '${IMAGE_URI}'"
+        
+        # Verify IMAGE_URI is not empty
+        if [ -z "${IMAGE_URI}" ]; then
+          echo "Error: IMAGE_URI is empty!"
+          echo "This usually means the build-and-push job failed to output the image-uri"
+          exit 1
+        fi
+        
         echo "Deploying image: ${IMAGE_URI}"
         
         # Create namespace first
