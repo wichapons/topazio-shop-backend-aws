@@ -89,7 +89,6 @@ jobs:
       run: |
         echo "Verifying AWS credentials..."
         aws sts get-caller-identity
-        aws eks describe-cluster --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} --query 'cluster.status'
 
     - name: Install kubectl
       uses: azure/setup-kubectl@v3
