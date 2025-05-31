@@ -100,9 +100,6 @@ jobs:
       run: |
         echo "Updating kubeconfig..."
         aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} --verbose
-        echo "Testing cluster connection..."
-        kubectl cluster-info
-        kubectl get nodes
 
     - name: Deploy to Kubernetes
       env:
