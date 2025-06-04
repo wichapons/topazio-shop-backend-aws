@@ -13,6 +13,8 @@ const apiRoutes = require("./routes/apiRoutes");
 const fileUpload = require("express-fileupload");
 //Cookie
 const cookieParser = require("cookie-parser");
+//CORS
+const cors = require("cors");
 //socket.io
 const http = require('http');
 const configureSocketIO = require("./middlewares/socket")
@@ -21,6 +23,14 @@ global.io = configureSocketIO(httpServer);
 //error handler
 const errorHandler = require("./middlewares/errorHandler")
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.ORIGIN_WHITELIST.split(',').map(origin => origin.trim()),
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(errorHandler)
 app.use(fileUpload());
 app.use(cookieParser());

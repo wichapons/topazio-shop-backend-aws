@@ -21,7 +21,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Configure AWS credentials with OIDC
-      uses: aws-actions/configure-aws-credentials@v3
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
         aws-region: ${{ secrets.AWS_REGION }}
@@ -83,12 +83,11 @@ jobs:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
         role-session-name: GitHub-Actions-EKS-Deploy
         aws-region: ${{ secrets.AWS_REGION }}
-        mask-aws-account-id: false
 
-    - name: Verify AWS credentials
-      run: |
-        echo "Verifying AWS credentials..."
-        aws sts get-caller-identity
+    # - name: Verify AWS credentials
+    #   run: |
+    #     echo "Verifying AWS credentials..."
+    #     aws sts get-caller-identity
 
     - name: Install kubectl
       uses: azure/setup-kubectl@v3
@@ -98,7 +97,7 @@ jobs:
     - name: Update kube config and verify connection
       run: |
         echo "Updating kubeconfig..."
-        aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} --verbose
+        aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }} 
 
     - name: Deploy to Kubernetes
       env:
@@ -122,14 +121,14 @@ jobs:
         
         # Create namespace first
         kubectl apply -f kubernetes/namespace.yaml
-        
-        # Delete existing secret if it exists and create new one
+          # Delete existing secret if it exists and create new one
         kubectl delete secret topazio-backend-secrets -n topazio-dev --ignore-not-found=true
         kubectl create secret generic topazio-backend-secrets \
           --from-literal=MONGO_URI="${{ secrets.MONGO_URI }}" \
           --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
           --from-literal=STRIPE_API_KEY="${{ secrets.STRIPE_API_KEY }}" \
           --from-literal=LAUNCHDARKLY_SDK_KEY="${{ secrets.LAUNCHDARKLY_SDK_KEY }}" \
+          --from-literal=ORIGIN_WHITELIST="${{ secrets.ORIGIN_WHITELIST }}" \
           --namespace=topazio-dev
           
         # Apply ConfigMap for non-sensitive configuration

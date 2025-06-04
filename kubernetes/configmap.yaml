@@ -7,4 +7,3 @@ metadata:
 data:
   NODE_ENV: "dev"
   PORT: "5000"
-  ORIGIN_WHITELIST: "https://topazio.me,https://www.topazio.me"

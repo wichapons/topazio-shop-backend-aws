@@ -36,11 +36,10 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: topazio-backend-config
-              key: PORT
-        - name: ORIGIN_WHITELIST
+              key: PORT        - name: ORIGIN_WHITELIST
           valueFrom:
-            configMapKeyRef:
-              name: topazio-backend-config
+            secretKeyRef:
+              name: topazio-backend-secrets
               key: ORIGIN_WHITELIST
         # Sensitive data from Secrets
         - name: MONGO_URI
