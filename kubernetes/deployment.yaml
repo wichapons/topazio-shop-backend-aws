@@ -36,7 +36,8 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: topazio-backend-config
-              key: PORT        - name: ORIGIN_WHITELIST
+              key: PORT
+        - name: ORIGIN_WHITELIST
           valueFrom:
             secretKeyRef:
               name: topazio-backend-secrets
@@ -62,13 +63,13 @@ spec:
             secretKeyRef:
               name: topazio-backend-secrets
               key: LAUNCHDARKLY_SDK_KEY
-        livenessProbe:          # Health check: restart if this fails
+        livenessProbe:
           httpGet:
-            path: /api/health   # Endpoint to check (matches ingress configuration)
+            path: /api/health
             port: 5000
           initialDelaySeconds: 30
           periodSeconds: 10
-        readinessProbe:         # Traffic routing: only send traffic if this passes
+        readinessProbe:
           httpGet:
             path: /api/health
             port: 5000
