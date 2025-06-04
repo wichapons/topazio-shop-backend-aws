@@ -27,10 +27,18 @@ const errorHandler = require("./middlewares/errorHandler")
 const corsOptions = {
   origin: process.env.ORIGIN_WHITELIST.split(',').map(origin => origin.trim()),
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
+  preflightContinue: false
 };
 
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
 app.use(errorHandler)
 app.use(fileUpload());
 app.use(cookieParser());
