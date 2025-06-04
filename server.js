@@ -24,8 +24,27 @@ global.io = configureSocketIO(httpServer);
 const errorHandler = require("./middlewares/errorHandler")
 
 // CORS configuration
+const allowedOrigins = process.env.ORIGIN_WHITELIST ? 
+  process.env.ORIGIN_WHITELIST.split(',').map(origin => origin.trim()) : 
+  '';
+
+console.log('Allowed CORS origins:', allowedOrigins);
+
 const corsOptions = {
-  origin: process.env.ORIGIN_WHITELIST.split(',').map(origin => origin.trim()),
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    console.log('CORS check - Request origin:', origin);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('CORS allowed for origin:', origin);
+      callback(null, true);
+    } else {
+      console.log('CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
