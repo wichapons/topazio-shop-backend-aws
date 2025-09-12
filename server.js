@@ -31,20 +31,7 @@ const allowedOrigins = process.env.ORIGIN_WHITELIST ?
 console.log('Allowed CORS origins:', allowedOrigins);
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    console.log('CORS check - Request origin:', origin);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('CORS allowed for origin:', origin);
-      callback(null, true);
-    } else {
-      console.log('CORS blocked for origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // This allows all origins - USE ONLY FOR TESTING
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
